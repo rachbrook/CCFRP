@@ -1,6 +1,6 @@
 ---
-title: "2022 Proposed CCFRP Otolith Collections"
-author: "Melissa H. Monk"
+title: "2023 Proposed CCFRP Otolith Collections"
+author: "Melissa H. Monk and Ellie Brauer"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   bookdown::pdf_document2: 
@@ -44,20 +44,113 @@ library(knitr)
 ```{r setup, echo = FALSE, include = FALSE, warning = FALSE, message = FALSE, cache = TRUE}
 knitr::opts_chunk$set(echo = FALSE)
 
-setwd("C:/GitHub/CCFRP")
 
 #-------------------------------------------------------------------------------
 # Read in data and basic cleanup
-load("CCFRP_cleanedup.RData")
+#load("CCFRP_cleanedup.RData")
+#setwd("C:/GitHub/CCFRP")
+# Read in data and basic cleanup
+# Eventually open these directly in access, but it's not behaving
+# Extract excel files from the Access database
+# read in trip data
+trips <- read.csv("1-Trip Information.csv")
+# read in drift data
+drifts_all <-read.csv("3-Drift Information.csv")
+# read in catch data
+catches <- read.csv("4-Caught Fishes.csv")
+#Species lookup
+Species <- read.csv("Fish Species.csv")
+Species <- Species %>%
+  select(Species.Code, Common.Name, Rockfish)
+
+#Read in management groups
+Areas <- read.csv("Monitoring Areas.csv")
+
+# columns have spaces - remove all spaces here
+trips <- trips %>% rename_all(make.names)
+catches <- catches %>% rename_all(make.names)
+drifts_all <- drifts_all %>% rename_all(make.names)
+
+#Add species common names
+catches <- left_join(catches, Species, by = 'Species.Code') %>%
+  filter(Rockfish == TRUE)
+
+# select final columns from trip table
+trips <- trips %>%
+  dplyr::select(Trip.ID, Month, Day, Year.Automatic, Vessel) %>%
+  rename(YEAR = Year.Automatic)
+# join drifts and trip info
+drifts_all <- left_join(drifts_all, trips)
+
+# Pull only relevent column names from the drifts
+drifts <- drifts_all %>%
+  dplyr::select(
+    Drift.ID, Trip.ID, ID.Cell.per.Trip, Grid.Cell.ID,
+    Site..MPA..REF., Drift.Time..hrs., Total...Anglers.Fishing,
+    Start.Depth..ft., End.Depth..ft., Excluded.Drift.Comment,
+    ST_LatDD, ST_LonDD, Month, Day, YEAR, Vessel
+  ) %>%
+  rename(SITE = Site..MPA..REF.) %>%
+  filter(!is.na(Drift.Time..hrs.))
+
+# Need to change 7's to july and 8's to august
+drifts$Month[drifts$Month == 7] <- "July"
+drifts$Month[drifts$Month == 8] <- "August"
+
+# Collapse catches to drift level
+#Target_catches <- subset(catches, Species.Code == ccfrp.species.code)
+Drift_catches <- catches %>%
+  group_by(Common.Name, Drift.ID) %>%
+  tally()
+#colnames(Target_catches)[2] <- "Target"
+
+# join drifts and catch info and make NA 0 where target species not observed
+dat <- left_join(Drift_catches, drifts)
+dat <- dat %>%
+  mutate(Area.code = substring(Drift.ID, 1, 2)) %>%
+  mutate(Effort = Total...Anglers.Fishing * Drift.Time..hrs.) %>%
+  mutate(CPUE = n / Effort)
+
+dat <- left_join(dat, Areas)
+
+# List of AREAs to drop
+# TD, Trinidad - no mpa
+# FN, farallons, samples only 2 years
+# PC - error?
+dat <- dat %>%
+  filter(!(Area.code %in% c("FN", "PC", "BM", "LB", "TD"))) %>%
+  droplevels
+
+# Fish time filter
+# Give drifts within a cell on the same day a drift number
+# See how many drifts and total fished time
+Num_drifts_fished <- dat %>%
+  select(YEAR, Drift.ID, ID.Cell.per.Trip, Drift.Time..hrs.) %>%
+  unique() %>%
+  group_by(YEAR, ID.Cell.per.Trip) %>%
+  summarise(
+    num.drifts = n(),
+    tot_time = sum(Drift.Time..hrs.)
+  )
+# cells fished at least 15 minutes
+Drift_time_keep <- Num_drifts_fished %>% filter(tot_time >= .25)
+
+# Remove cells fished less tan a total of 15 minutes on a day
+dat <- dat %>%
+  filter(
+    ID.Cell.per.Trip %in% Drift_time_keep$ID.Cell.per.Trip,
+    `Drift.Time..hrs.` > 0.03333333
+  )
+
 #-------------------------------------------------------------------------------
 
-# Figure out how many of each species we can collect during the 2022 season
+# Figure out how many of each species we can collect during the 2023 season
 
 #Subset to just Reference areas since we can't take otoliths from MPAs
-#and only look at 2019-2021
+#and only look at 2019-2022
 dat2 <- dat %>%
   filter(SITE == 'REF',
-         YEAR %in% c(2018, 2019, 2021))  
+         YEAR %in% c(2019, 2021, 2022))  
 
 #Get the total angler hours by monitoring area
 effort_by_program <- dat2 %>%
@@ -73,7 +166,7 @@ total_effort <- effort_by_program %>%
 ```
 
 # First Pass at Determining 2022 Otolith Collections
-The following use only data from 2018, 2019 and 2020 from the reference areas. Drifts that did not see any of the target species are also excluded. I also excluded the following MPA locations, Farallons, Point Conception, Laguna Beach, Trinidad and "BM" (error?). 
+The following use only data from 2019, 2021 and 2022 from the reference areas. Drifts that did not see any of the target species are also excluded. I also excluded the following MPA locations, Farallons, Point Conception, Laguna Beach, Trinidad and "BM" (error?). 
 
 As a first pass, I looked at the total number of a given species by north and south 
 of Point Conception.  I did this because we have been separating assessments at 
@@ -117,7 +210,7 @@ blue/deacons.
 ```{r anghrs, echo = FALSE, warning = FALSE, message = FALSE}
 #Look at the effort by year among the programs
   knitr::kable(booktabs = T,
-    caption = "Total angler hours by institution summed across 2018, 2019, 2021.",
+    caption = "Total angler hours by institution summed across 2019, 2021, 2022.",
   effort_by_program %>%
   select(Monitoring.Group, YEAR, Effort) %>%
   group_by(Monitoring.Group, YEAR) %>%
@@ -129,12 +222,12 @@ blue/deacons.
 ```
 
 
-```{r effort2021, echo = FALSE, warning = FALSE, message = FALSE}
+```{r effort2022, echo = FALSE, warning = FALSE, message = FALSE}
 
   knitr::kable(booktabs = T,
-    caption = "Total effort in 2021",
+    caption = "Total effort in 2022",
     effort_by_program %>%
-      filter(YEAR == 2021) %>%
+      filter(YEAR == 2022) %>%
       group_by(Monitoring.Group) %>%
       summarise(Total_AnglerHours = round(sum(Effort), 0)) %>%
       mutate(Percent_Effort = scales::percent(Total_AnglerHours / sum(Total_AnglerHours), accuracy = 1)) %>%
@@ -144,11 +237,11 @@ blue/deacons.
 
 ```
 
-```{r effort2018, echo = FALSE, warning = FALSE, message = FALSE}
+```{r effort2019, echo = FALSE, warning = FALSE, message = FALSE}
   knitr::kable(booktabs = T,
-    caption = "Total effort in 2018",
+    caption = "Total effort in 2019",
     effort_by_program %>%
-      filter(YEAR == 2018) %>%
+      filter(YEAR == 2019) %>%
       group_by(Monitoring.Group) %>%
       summarise(Total_AnglerHours = round(sum(Effort),0)) %>%
       mutate(Percent_Effort = scales::percent(Total_AnglerHours / sum(Total_AnglerHours), accuracy = 1)) %>% data.frame
