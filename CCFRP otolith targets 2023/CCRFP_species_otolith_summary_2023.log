@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.10) (preloaded format=pdflatex 2023.3.24)  24 MAR 2023 13:47
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.10) (preloaded format=pdflatex 2023.3.24)  28 MAR 2023 15:10
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -854,30 +854,42 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 [2] [3] [4
 
 
-] [5] [6] [7] [8] [9] (CCRFP_species_otolith_summary_2023.aux)
+] [5] [6] [7] [8]
+<CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-3-1.pdf, i
+d=50, 469.755pt x 325.215pt>
+File: CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-3-1.p
+df Graphic file (type pdf)
+<use CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-3-1.pd
+f>
+Package pdftex.def Info: CCRFP_species_otolith_summary_2023_files/figure-latex/
+unnamed-chunk-3-1.pdf  used on input line 588.
+(pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
+[9] [10 <./CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-
+3-1.pdf>] [11] (CCRFP_species_otolith_summary_2023.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 15364 strings out of 475385
- 251946 string characters out of 2771715
- 771799 words of memory out of 3000000
- 36383 multiletter control sequences out of 15000+600000
- 515461 words of font info for 95 fonts, out of 8000000 for 9000
+ 15426 strings out of 475385
+ 256062 string characters out of 2771715
+ 779669 words of memory out of 3000000
+ 36405 multiletter control sequences out of 15000+600000
+ 522588 words of font info for 109 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 74i,9n,81p,1033b,566s stack positions out of 10000i,1000n,20000p,200000b,80000s
+ 74i,9n,81p,7606b,566s stack positions out of 10000i,1000n,20000p,200000b,80000s
 {C:/Users/elizabeth.brauer/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/l
 m-ec.enc}<C:/Users/elizabeth.brauer/AppData/Local/Programs/MiKTeX/fonts/type1/p
-ublic/lm/lmbx12.pfb><C:/Users/elizabeth.brauer/AppData/Local/Programs/MiKTeX/fo
-nts/type1/public/lm/lmr10.pfb><C:/Users/elizabeth.brauer/AppData/Local/Programs
-/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:/Users/elizabeth.brauer/AppData/Loca
-l/Programs/MiKTeX/fonts/type1/public/lm/lmr17.pfb><C:/Users/elizabeth.brauer/Ap
-pData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri10.pfb>
-Output written on CCRFP_species_otolith_summary_2023.pdf (9 pages, 155724 bytes
-).
+ublic/lm/lmbx10.pfb><C:/Users/elizabeth.brauer/AppData/Local/Programs/MiKTeX/fo
+nts/type1/public/lm/lmbx12.pfb><C:/Users/elizabeth.brauer/AppData/Local/Program
+s/MiKTeX/fonts/type1/public/lm/lmr10.pfb><C:/Users/elizabeth.brauer/AppData/Loc
+al/Programs/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:/Users/elizabeth.brauer/A
+ppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr17.pfb><C:/Users/elizabet
+h.brauer/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri10.pfb>
+Output written on CCRFP_species_otolith_summary_2023.pdf (11 pages, 249848 byte
+s).
 PDF statistics:
- 86 PDF objects out of 1000 (max. 8388607)
- 18 named destinations out of 1000 (max. 500000)
- 24585 words of extra memory for PDF output out of 24883 (max. 10000000)
+ 137 PDF objects out of 1000 (max. 8388607)
+ 31 named destinations out of 1000 (max. 500000)
+ 28726 words of extra memory for PDF output out of 29859 (max. 10000000)
 

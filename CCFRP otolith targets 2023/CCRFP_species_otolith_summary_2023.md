@@ -1,7 +1,7 @@
 ---
 title: "2023 Proposed CCFRP Otolith Collections"
 author: "Melissa H. Monk and Ellie Brauer"
-date: "March 24, 2023"
+date: "March 28, 2023"
 output:
   bookdown::pdf_document2: 
     keep_tex: true
@@ -502,4 +502,44 @@ Yellowtail Rockfish & MLML & 2021 & Central & 60 & 1.7293645\\
 \addlinespace
 \cellcolor{gray!6}{Yellowtail Rockfish} & \cellcolor{gray!6}{MLML} & \cellcolor{gray!6}{2022} & \cellcolor{gray!6}{Central} & \cellcolor{gray!6}{46} & \cellcolor{gray!6}{1.0150536}\\
 Yellowtail Rockfish & UCSB & 2022 & South & 1 & 0.3333333\\*
+\end{longtable}
+
+## Methods
+### Query the completed CCFRP database for area, month, day, year, trip, cell, site (from the drift table not the trip table), species, length, tag, and retained. Filter for desired areas (and species optional) based on institution of interest. Copy and paste data to an excel spreadsheet. Create a length column in mm units by multiplying the cm length column by 10. Create R friendly column names (area, month, day,	year, vessel, trip, cell, site, species, length_mm, length_cm, tag, retained). Save as CSV.
+
+### In R, read in CSV. Identify species with large sample sizes or species of interest using the table function. Create an institution and species specific dataframe by filtering for REF site, species (depending on if you already filtered for institution or species in the access query). Change year and retained variables to characters. Create a summary table of length means by retained status and year. Create density plots for each species and year that displays the distribution of lengths of retained fish and non-retained fish. Include mean line for each group on density plot. Create a summary table that displays the number of retained and non-retained fish for each year.
+
+### Length measurement techniques: Cal Poly Humboldt: "Pinch" tail for Canary, Blue, Deacon RF., measure natrual splay for other species. Cal Poly Slo, Fork Length. BML, Fork Length. MLML, Natural Splay Total Length. SIO, Natural Splay Total Length. UCSB, Natural Splay Total Length.
+
+
+## Cal Poly Blue Rockfish
+
+
+
+
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-3-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-4)Poly blue}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-4)Poly blue \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{2470} & \cellcolor{gray!6}{21}\\
+2018 & 1881 & 26\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{934} & \cellcolor{gray!6}{43}\\
+2020 & 1014 & 21\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{342} & \cellcolor{gray!6}{54}\\
+\addlinespace
+2022 & 80 & 17\\*
 \end{longtable}
