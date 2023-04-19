@@ -1,7 +1,7 @@
 ---
-title: "2023 Proposed CCFRP Otolith Collections"
+title: "2023 Proposed CCFRP Otolith Collections and 2022 Retained Fish Length Comparisons"
 author: "Melissa H. Monk and Ellie Brauer"
-date: "March 28, 2023"
+date: "April 19, 2023"
 output:
   bookdown::pdf_document2: 
     keep_tex: true
@@ -31,45 +31,14 @@ always_allow_html: true
 
 
 
-# First Pass at Determining 2023 Otolith Collections
-The following use only data from 2019, 2021 and 2022 from the reference areas. Drifts that did not see any of the target species are also excluded. I also excluded the following MPA locations, Farallons, Point Conception, Laguna Beach, Trinidad and "BM" (error?). 
+# Determining 2023 Otolith Collections
+## Methods
+The following use data from 2019, 2021 and 2022 from the reference areas. Drifts that did not see any of the target species are also excluded. The following MPA locations were also excluded: Farallons, Point Conception, Laguna Beach, Trinidad and "BM". 
 
-As a first pass, I looked at the total number of a given species by north and south 
-of Point Conception.  I did this because we have been separating assessments at 
-Point Conception for most of the nearshore species, and species compositions and 
-fishing practices are fundamentally different in these two regions.  
-If there were fewer than 4 of a given species seen across the three years, I 
-excluded them from the collections analysis.  I also removed yelloweye rockfish 
-and the olive or yellowtail rockfish category.
+Species with fewer than 4 individuals seen across the three years were excluded. Yelloweye rockfish and the olive or yellowtail rockfish category were also removed.
 
-I then took the ratios of a 
-species within by CCFRP institution and scaled that to either a collection total 
-for each region of 50 samples (otoliths) or 70% of the total. In an assessment model, 
-we usually exclude any age data with fewer than 30 samples per year.
+Ratios of a species within by CCFRP institution were taken and scaled to either a collection total for each region of 50 samples (otoliths) or 70% of the total. 
 
-I realize that we need to scale back some of the collections by programs, e.g., BML,
-and also figure out if we should lingcod.  The NWFSC is currently exploring 
-a comparison of lingcod otoliths reads with spine.  Collection of spine is a bit more 
-difficult.  There is also an interest in developing post-fillet back calculations 
-for lingcod.  What I'd like to hear from each partner, is the maximum number of 
-otoliths you think you could possibly collect.  We will also have staff available 
-to process fish (as long as COVID trends the right direction).
-
-For species that are less common, otoliths can still be used to look at growth 
-curves, e.g. copper and quillback this cycle.
-
-I will clean up the tables below and look at a few other metrics including 
-available habitat in the reference sites for each university's site to make sure 
-we're scaling samples approporiately.
-
-This document lives on my Github page and will allow us to reproduce these values 
-as a moving window going forward, and also adjust according to assessment 
-prioritization.  The Council will decide a preliminary assessments for the odd year 
-in the prior even year, with final decisions coming in June.  That should give us 
-time to adjust these numbers for special collections.
-
-We also have an interest in fin clips, especially for vermilion/sunsets and also 
-blue/deacons.
 
 \newpage
 
@@ -126,9 +95,6 @@ UCSB & 110 & 13\%\\
 \bottomrule
 \end{tabular}
 \end{table}
-
-
-
 
 
 
@@ -504,29 +470,28 @@ Yellowtail Rockfish & MLML & 2021 & Central & 60 & 1.7293645\\
 Yellowtail Rockfish & UCSB & 2022 & South & 1 & 0.3333333\\*
 \end{longtable}
 
+# 2022 fish length comparisons
 ## Methods
-### Query the completed CCFRP database for area, month, day, year, trip, cell, site (from the drift table not the trip table), species, length, tag, and retained. Filter for desired areas (and species optional) based on institution of interest. Copy and paste data to an excel spreadsheet. Create a length column in mm units by multiplying the cm length column by 10. Create R friendly column names (area, month, day,	year, vessel, trip, cell, site, species, length_mm, length_cm, tag, retained). Save as CSV.
+The completed CCFRP database was queried for area, month, day, year, trip, cell, site (from the drift table not the trip table), species, length, tag, and retained. Desired areas (and species optional) were selected based on institution of interest. Data was then transfered to an excel spreadsheet and a length column in mm units was created by multiplying the cm length column by 10. R friendly column names (area, month, day,	year, vessel, trip, cell, site, species, length_mm, length_cm, tag, retained) were created.
 
-### In R, read in CSV. Identify species with large sample sizes or species of interest using the table function. Create an institution and species specific dataframe by filtering for REF site, species (depending on if you already filtered for institution or species in the access query). Change year and retained variables to characters. Create a summary table of length means by retained status and year. Create density plots for each species and year that displays the distribution of lengths of retained fish and non-retained fish. Include mean line for each group on density plot. Create a summary table that displays the number of retained and non-retained fish for each year.
+In R, species with large sample sizes and species of interest were identified. An institution and species specific dataframe was created by filtering for REF site and species. Year and retained variables were changed to characters. Density plots with mean lines for each species and year that displays the distribution of lengths of retained fish and non-retained fish were created. A summary table of retained and non-retained fish for each year was produced and diplayed below the corresponding graph. 
 
-### Length measurement techniques: Cal Poly Humboldt: "Pinch" tail for Canary, Blue, Deacon RF., measure natrual splay for other species. Cal Poly Slo, Fork Length. BML, Fork Length. MLML, Natural Splay Total Length. SIO, Natural Splay Total Length. UCSB, Natural Splay Total Length.
+Length measurement techniques: Cal Poly Humboldt: "Pinch" tail for Canary, Blue, Deacon RF., measure natrual splay for other species. Cal Poly Slo, Fork Length. BML, Fork Length. MLML, Natural Splay Total Length. SIO, Natural Splay Total Length. UCSB, Natural Splay Total Length.
 
-
+\newpage
 ## Cal Poly Blue Rockfish
-
-
 
 
 ![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-3-1.pdf)<!-- --> 
 
 
 \begin{longtable}[t]{lrr}
-\caption{(\#tab:unnamed-chunk-4)Poly blue}\\
+\caption{(\#tab:unnamed-chunk-4)Cal Poly Slo Blue RF}\\
 \toprule
 year & No & Yes\\
 \midrule
 \endfirsthead
-\caption[]{(\#tab:unnamed-chunk-4)Poly blue \textit{(continued)}}\\
+\caption[]{(\#tab:unnamed-chunk-4)Cal Poly Slo Blue RF \textit{(continued)}}\\
 \toprule
 year & No & Yes\\
 \midrule
@@ -542,4 +507,546 @@ year & No & Yes\\
 \cellcolor{gray!6}{2021} & \cellcolor{gray!6}{342} & \cellcolor{gray!6}{54}\\
 \addlinespace
 2022 & 80 & 17\\*
+\end{longtable}
+\newpage
+## Cal Poly Slo Gopher Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-5-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-6)Cal Poly Slo Gopher RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-6)Cal Poly Slo Gopher RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{281} & \cellcolor{gray!6}{21}\\
+2018 & 260 & 30\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{397} & \cellcolor{gray!6}{4}\\
+2020 & 366 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{241} & \cellcolor{gray!6}{40}\\
+\addlinespace
+2022 & 396 & 21\\*
+\end{longtable}
+\newpage
+## Cal Poly Slo Copper Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-7-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-8)Cal Poly Slo Copper RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-8)Cal Poly Slo Copper RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{16} & \cellcolor{gray!6}{NA}\\
+2018 & 24 & NA\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{13} & \cellcolor{gray!6}{8}\\
+2020 & 12 & 14\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{6}\\
+\addlinespace
+2022 & 4 & 13\\*
+\end{longtable}
+\newpage
+## Cal Poly Slo Vermilion Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-9-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-10)Cal Poly Slo Vermilion RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-10)Cal Poly Slo Vermilion RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{46} & \cellcolor{gray!6}{1}\\
+2018 & 47 & 2\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{47} & \cellcolor{gray!6}{3}\\
+2020 & 25 & 14\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{17} & \cellcolor{gray!6}{10}\\
+\addlinespace
+2022 & 18 & 14\\*
+\end{longtable}
+\newpage
+## Cal Poly Slo Olive Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-11-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-12)Cal Poly Slo Olive Rockfish}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-12)Cal Poly Slo Olive Rockfish \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{104} & \cellcolor{gray!6}{3}\\
+2018 & 151 & 3\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{181} & \cellcolor{gray!6}{2}\\
+2020 & 58 & 16\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{20} & \cellcolor{gray!6}{7}\\
+\addlinespace
+2022 & 35 & 3\\*
+\end{longtable}
+\newpage
+## BML Black Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-13-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-14)BML Black RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-14)BML Black RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{61} & \cellcolor{gray!6}{NA}\\
+2018 & 114 & 34\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{185} & \cellcolor{gray!6}{18}\\
+2020 & 117 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{171} & \cellcolor{gray!6}{NA}\\
+\addlinespace
+2022 & 18 & 4\\*
+\end{longtable}
+\newpage
+## BML Deacon Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-15-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-16)BML Deacon RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-16)BML Deacon RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{131} & \cellcolor{gray!6}{NA}\\
+2018 & 377 & 42\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{438} & \cellcolor{gray!6}{18}\\
+2020 & 122 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{240} & \cellcolor{gray!6}{NA}\\
+\addlinespace
+2022 & 266 & 35\\*
+\end{longtable}
+\newpage
+## BML Blue Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-17-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-18)BML Blue RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-18)BML Blue RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{38} & \cellcolor{gray!6}{NA}\\
+2018 & 256 & 28\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{449} & \cellcolor{gray!6}{27}\\
+2020 & 127 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{344} & \cellcolor{gray!6}{NA}\\
+\addlinespace
+2022 & 138 & 8\\*
+\end{longtable}
+\newpage
+## BML Gopher Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-19-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-20)BML Gopher RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-20)BML Gopher RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{32} & \cellcolor{gray!6}{NA}\\
+2018 & 42 & 55\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{109} & \cellcolor{gray!6}{36}\\
+2020 & 115 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{270} & \cellcolor{gray!6}{NA}\\
+\addlinespace
+2022 & 147 & 11\\*
+\end{longtable}
+\newpage
+## BML Yellowtail Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-21-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-22)BML Yellowtail RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-22)BML Yellowtail RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{39} & \cellcolor{gray!6}{NA}\\
+2018 & 115 & 29\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{62} & \cellcolor{gray!6}{7}\\
+2020 & 52 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{105} & \cellcolor{gray!6}{NA}\\
+\addlinespace
+2022 & 24 & 8\\*
+\end{longtable}
+\newpage
+## BML Copper Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-23-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-24)BML Copper RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-24)BML Copper RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{10} & \cellcolor{gray!6}{NA}\\
+2018 & 5 & 10\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{50} & \cellcolor{gray!6}{7}\\
+2020 & 29 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{34} & \cellcolor{gray!6}{NA}\\
+\addlinespace
+2022 & 13 & 9\\*
+\end{longtable}
+\newpage
+## BML Canary Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-25-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-26)BML Cannary RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-26)BML Cannary RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{4} & \cellcolor{gray!6}{NA}\\
+2018 & 36 & 2\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{57} & \cellcolor{gray!6}{NA}\\
+2020 & 83 & NA\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{109} & \cellcolor{gray!6}{NA}\\
+\addlinespace
+2022 & 48 & 17\\*
+\end{longtable}
+\newpage
+## UCSB Blue Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-27-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-28)UCSB Blue RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-28)UCSB Blue RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2022} & \cellcolor{gray!6}{147} & \cellcolor{gray!6}{40}\\*
+\end{longtable}
+\newpage
+## UCSB Copper Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-29-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-30)UCSB Copper RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-30)UCSB Copper RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2022} & \cellcolor{gray!6}{147} & \cellcolor{gray!6}{40}\\*
+\end{longtable}
+\newpage
+## UCSB Gopher Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-31-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-32)UCSB Gopher RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-32)UCSB Gopher RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2022} & \cellcolor{gray!6}{147} & \cellcolor{gray!6}{40}\\*
+\end{longtable}
+\newpage
+## Cal Poly Humboldt Black Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-33-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-34)Cal Poly Humboldt Black RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-34)Cal Poly Humboldt Black RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{39} & \cellcolor{gray!6}{58}\\
+2018 & 627 & 178\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{343} & \cellcolor{gray!6}{118}\\
+2020 & 100 & 42\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{170} & \cellcolor{gray!6}{32}\\
+\addlinespace
+2022 & 171 & 19\\*
+\end{longtable}
+\newpage
+## Cal Poly Humboldt Deacon Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-35-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-36)Cal Poly Humboldt Deacon RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-36)Cal Poly Humboldt Deacon RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{1} & \cellcolor{gray!6}{30}\\
+2018 & 40 & 31\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{86} & \cellcolor{gray!6}{51}\\
+2020 & 53 & 34\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{122} & \cellcolor{gray!6}{23}\\
+\addlinespace
+2022 & 75 & 12\\*
+\end{longtable}
+\newpage
+## Cal Poly Humboldt Yellowtail Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-37-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-38)Cal Poly Humboldt Yellowtail RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-38)Cal Poly Humboldt Yellowtail RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{4} & \cellcolor{gray!6}{23}\\
+2018 & 59 & 38\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{11} & \cellcolor{gray!6}{25}\\
+2020 & 60 & 32\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{72} & \cellcolor{gray!6}{27}\\
+\addlinespace
+2022 & 21 & 6\\*
+\end{longtable}
+\newpage
+## MLML Black Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-39-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-40)MLML Black RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-40)MLML Black RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{319} & \cellcolor{gray!6}{74}\\
+2018 & 313 & NA\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{383} & \cellcolor{gray!6}{6}\\
+2020 & 241 & 29\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{448} & \cellcolor{gray!6}{29}\\
+\addlinespace
+2022 & 400 & 23\\*
+\end{longtable}
+\newpage
+## MLML Copper Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-41-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-42)MLML Copper RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-42)MLML Copper RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{27} & \cellcolor{gray!6}{2}\\
+2018 & 19 & 1\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{1} & \cellcolor{gray!6}{5}\\
+2020 & 6 & 3\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{9}\\
+\addlinespace
+2022 & 6 & 5\\*
+\end{longtable}
+\newpage
+## MLML Blue Rockfish
+![](CCRFP_species_otolith_summary_2023_files/figure-latex/unnamed-chunk-43-1.pdf)<!-- --> 
+
+
+\begin{longtable}[t]{lrr}
+\caption{(\#tab:unnamed-chunk-44)MLML Blue RF}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endfirsthead
+\caption[]{(\#tab:unnamed-chunk-44)MLML Blue RF \textit{(continued)}}\\
+\toprule
+year & No & Yes\\
+\midrule
+\endhead
+
+\endfoot
+\bottomrule
+\endlastfoot
+\cellcolor{gray!6}{2017} & \cellcolor{gray!6}{27} & \cellcolor{gray!6}{2}\\
+2018 & 19 & 1\\
+\cellcolor{gray!6}{2019} & \cellcolor{gray!6}{1} & \cellcolor{gray!6}{5}\\
+2020 & 6 & 3\\
+\cellcolor{gray!6}{2021} & \cellcolor{gray!6}{3} & \cellcolor{gray!6}{9}\\
+\addlinespace
+2022 & 6 & 5\\*
 \end{longtable}
