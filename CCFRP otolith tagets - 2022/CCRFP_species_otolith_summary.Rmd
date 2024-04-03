@@ -1,0 +1,371 @@
+---
+title: "2023 Proposed CCFRP Otolith Collections"
+author: "Melissa H. Monk and Ellie Brauer"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  bookdown::pdf_document2: 
+    keep_tex: true
+    keep_md: true
+toc: false
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+  - \usepackage{placeins}
+always_allow_html: true
+---
+
+
+```{r load-packages, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(devtools)
+library(dplyr)
+library(ggplot2)
+library(ggridges)
+library(stringr)
+library(tidyr)
+library(unikn)
+library(viridis)
+library(kableExtra)
+library(knitr)
+```
+
+
+```{r setup, echo = FALSE, include = FALSE, warning = FALSE, message = FALSE, cache = TRUE}
+knitr::opts_chunk$set(echo = FALSE)
+
+
+#-------------------------------------------------------------------------------
+# Read in data and basic cleanup
+#load("CCFRP_cleanedup.RData")
+#setwd("C:/GitHub/CCFRP")
+# Read in data and basic cleanup
+# Eventually open these directly in access, but it's not behaving
+# Extract excel files from the Access database
+# read in trip data
+trips <- read.csv("1-Trip Information.csv")
+# read in drift data
+drifts_all <-read.csv("3-Drift Information.csv")
+# read in catch data
+catches <- read.csv("4-Caught Fishes.csv")
+#Species lookup
+Species <- read.csv("Fish Species.csv")
+Species <- Species %>%
+  select(Species.Code, Common.Name, Rockfish)
+
+#Read in management groups
+Areas <- read.csv("Monitoring Areas.csv")
+
+# columns have spaces - remove all spaces here
+trips <- trips %>% rename_all(make.names)
+catches <- catches %>% rename_all(make.names)
+drifts_all <- drifts_all %>% rename_all(make.names)
+
+#Add species common names
+catches <- left_join(catches, Species, by = 'Species.Code') %>%
+  filter(Rockfish == TRUE)
+
+# select final columns from trip table
+trips <- trips %>%
+  dplyr::select(Trip.ID, Month, Day, Year.Automatic, Vessel) %>%
+  rename(YEAR = Year.Automatic)
+# join drifts and trip info
+drifts_all <- left_join(drifts_all, trips)
+
+# Pull only relevent column names from the drifts
+drifts <- drifts_all %>%
+  dplyr::select(
+    Drift.ID, Trip.ID, ID.Cell.per.Trip, Grid.Cell.ID,
+    Site..MPA..REF., Drift.Time..hrs., Total...Anglers.Fishing,
+    Start.Depth..ft., End.Depth..ft., Excluded.Drift.Comment,
+    ST_LatDD, ST_LonDD, Month, Day, YEAR, Vessel
+  ) %>%
+  rename(SITE = Site..MPA..REF.) %>%
+  filter(!is.na(Drift.Time..hrs.))
+
+# Need to change 7's to july and 8's to august
+drifts$Month[drifts$Month == 7] <- "July"
+drifts$Month[drifts$Month == 8] <- "August"
+
+# Collapse catches to drift level
+#Target_catches <- subset(catches, Species.Code == ccfrp.species.code)
+Drift_catches <- catches %>%
+  group_by(Common.Name, Drift.ID) %>%
+  tally()
+#colnames(Target_catches)[2] <- "Target"
+
+# join drifts and catch info and make NA 0 where target species not observed
+dat <- left_join(Drift_catches, drifts)
+dat <- dat %>%
+  mutate(Area.code = substring(Drift.ID, 1, 2)) %>%
+  mutate(Effort = Total...Anglers.Fishing * Drift.Time..hrs.) %>%
+  mutate(CPUE = n / Effort)
+
+dat <- left_join(dat, Areas)
+
+# List of AREAs to drop
+# TD, Trinidad - no mpa
+# FN, farallons, samples only 2 years
+# PC - error?
+dat <- dat %>%
+  filter(!(Area.code %in% c("FN", "PC", "BM", "LB", "TD"))) %>%
+  droplevels
+
+# Fish time filter
+# Give drifts within a cell on the same day a drift number
+# See how many drifts and total fished time
+Num_drifts_fished <- dat %>%
+  select(YEAR, Drift.ID, ID.Cell.per.Trip, Drift.Time..hrs.) %>%
+  unique() %>%
+  group_by(YEAR, ID.Cell.per.Trip) %>%
+  summarise(
+    num.drifts = n(),
+    tot_time = sum(Drift.Time..hrs.)
+  )
+# cells fished at least 15 minutes
+Drift_time_keep <- Num_drifts_fished %>% filter(tot_time >= .25)
+
+# Remove cells fished less tan a total of 15 minutes on a day
+dat <- dat %>%
+  filter(
+    ID.Cell.per.Trip %in% Drift_time_keep$ID.Cell.per.Trip,
+    `Drift.Time..hrs.` > 0.03333333
+  )
+
+#-------------------------------------------------------------------------------
+
+# Figure out how many of each species we can collect during the 2023 season
+
+#Subset to just Reference areas since we can't take otoliths from MPAs
+#and only look at 2019-2022
+dat2 <- dat %>%
+  filter(SITE == 'REF',
+         YEAR %in% c(2019, 2021, 2022))  
+
+#Get the total angler hours by monitoring area
+effort_by_program <- dat2 %>%
+  ungroup() %>%
+  select(Drift.ID, YEAR, Effort, Total...Anglers.Fishing, Monitoring.Group, Name) %>%
+  unique() 
+
+total_effort <- effort_by_program %>%
+  select(Monitoring.Group, YEAR, Effort) %>%
+  group_by(Monitoring.Group, YEAR) %>%
+  summarise(tot_effort = sum(Effort)) %>%
+  pivot_wider(names_from = Monitoring.Group, values_from = tot_effort)
+```
+
+# First Pass at Determining 2022 Otolith Collections
+The following use only data from 2019, 2021 and 2022 from the reference areas. Drifts that did not see any of the target species are also excluded. I also excluded the following MPA locations, Farallons, Point Conception, Laguna Beach, Trinidad and "BM" (error?). 
+
+As a first pass, I looked at the total number of a given species by north and south 
+of Point Conception.  I did this because we have been separating assessments at 
+Point Conception for most of the nearshore species, and species compositions and 
+fishing practices are fundamentally different in these two regions.  
+If there were fewer than 4 of a given species seen across the three years, I 
+excluded them from the collections analysis.  I also removed yelloweye rockfish 
+and the olive or yellowtail rockfish category.
+
+I then took the ratios of a 
+species within by CCFRP institution and scaled that to either a collection total 
+for each region of 50 samples (otoliths) or 70% of the total. In an assessment model, 
+we usually exclude any age data with fewer than 30 samples per year.
+
+I realize that we need to scale back some of the collections by programs, e.g., BML,
+and also figure out if we should lingcod.  The NWFSC is currently exploring 
+a comparison of lingcod otoliths reads with spine.  Collection of spine is a bit more 
+difficult.  There is also an interest in developing post-fillet back calculations 
+for lingcod.  What I'd like to hear from each partner, is the maximum number of 
+otoliths you think you could possibly collect.  We will also have staff available 
+to process fish (as long as COVID trends the right direction).
+
+For species that are less common, otoliths can still be used to look at growth 
+curves, e.g. copper and quillback this cycle.
+
+I will clean up the tables below and look at a few other metrics including 
+available habitat in the reference sites for each university's site to make sure 
+we're scaling samples approporiately.
+
+This document lives on my Github page and will allow us to reproduce these values 
+as a moving window going forward, and also adjust according to assessment 
+prioritization.  The Council will decide a preliminary assessments for the odd year 
+in the prior even year, with final decisions coming in June.  That should give us 
+time to adjust these numbers for special collections.
+
+We also have an interest in fin clips, especially for vermilion/sunsets and also 
+blue/deacons.
+
+\newpage
+
+```{r anghrs, echo = FALSE, warning = FALSE, message = FALSE}
+#Look at the effort by year among the programs
+  knitr::kable(booktabs = T,
+    caption = "Total angler hours by institution summed across 2019, 2021, 2022.",
+  effort_by_program %>%
+  select(Monitoring.Group, YEAR, Effort) %>%
+  group_by(Monitoring.Group, YEAR) %>%
+  summarise(Total_AnglerHours = round(sum(Effort),0)) %>%
+  pivot_wider(names_from = Monitoring.Group, values_from = Total_AnglerHours)
+  ) %>%
+    kable_styling(latex_options = "striped")
+
+```
+
+
+```{r effort2022, echo = FALSE, warning = FALSE, message = FALSE}
+
+  knitr::kable(booktabs = T,
+    caption = "Total effort in 2022",
+    effort_by_program %>%
+      filter(YEAR == 2022) %>%
+      group_by(Monitoring.Group) %>%
+      summarise(Total_AnglerHours = round(sum(Effort), 0)) %>%
+      mutate(Percent_Effort = scales::percent(Total_AnglerHours / sum(Total_AnglerHours), accuracy = 1)) %>%
+      data.frame
+  ) %>%
+    kable_styling(latex_options = "striped")
+
+```
+
+```{r effort2019, echo = FALSE, warning = FALSE, message = FALSE}
+  knitr::kable(booktabs = T,
+    caption = "Total effort in 2019",
+    effort_by_program %>%
+      filter(YEAR == 2019) %>%
+      group_by(Monitoring.Group) %>%
+      summarise(Total_AnglerHours = round(sum(Effort),0)) %>%
+      mutate(Percent_Effort = scales::percent(Total_AnglerHours / sum(Total_AnglerHours), accuracy = 1)) %>% data.frame
+  )
+```
+
+
+
+
+```{r echo = FALSE, include = FALSE, warning = FALSE, message = FALSE}
+## Get it down to the species there would be enough or or we're interested in
+total.fish <- dat2 %>%
+  group_by(Common.Name) %>%
+  summarise(total = sum(n)) #%>%
+ # filter(total > )
+
+
+dat2 <- dat2 %>%
+  filter(Common.Name %in% total.fish$Common.Name) %>%
+  filter(!(Common.Name %in% c("Yelloweye Rockfish",
+                              "Olive or Yellowtail Rockfish"))) 
+  
+
+fish_numbers <- dat2 %>%
+  group_by(Common.Name, Monitoring.Group, YEAR, Region) %>%
+  summarise(total_fish = sum(n),
+            avg_annual_cpue = mean(CPUE))# %>%
+  # group_by(Common.Name, CA_area) %>%
+  # summarise(avg_fish = mean(total_fish),
+  #           avg_cpue = mean(avg_annual_cpue)) %>%
+  # mutate(avg_fish = round(avg_fish,0))
+  # 
+
+####SOUTH
+# Get the average number of fish by program per year
+south0 <- fish_numbers %>%
+  filter(Region == "South") %>%
+  group_by(Common.Name, Monitoring.Group) %>%
+  summarise(average_fish = mean(total_fish)) %>%
+  filter(average_fish > 4)
+
+#Get the percent of the fish collected by each program and multiply by 50 - goal or less
+#number of otoliths per species
+south_collections <- south0 %>%
+  group_by(Common.Name) %>%
+  summarise(total = sum(average_fish))
+south_collections <- left_join(south_collections, south0) %>%
+  mutate(num_to_collect =  if_else(total > 75, ceiling(((average_fish/total)*50)), 
+                                    ceiling(((average_fish/total)*(.7*total))))) #%>%
+
+
+#Check totals for each program to see how they fall out in terms of effort for collecting
+south_program_effort <- south_collections %>%
+  group_by(Monitoring.Group) %>%
+  summarise(total_fish_for_otoliths = sum(num_to_collect))
+
+
+#####NORTH
+# Get the average number of fish collected over the last three years by program
+north0 <- fish_numbers %>%
+  filter(Region %in% c("Central", "North")) %>%
+  group_by(Common.Name, Monitoring.Group) %>%
+  summarise(average_fish = mean(total_fish)) %>%
+  filter(average_fish > 4)
+
+
+#Get the percent of the fish collected by each program and multiply by 60 - goal 
+#number of otoliths per species
+north_collections <- north0 %>%
+  group_by(Common.Name) %>%
+  summarise(total = sum(average_fish))
+north_collections <- left_join(north_collections, north0) %>%
+  mutate(num_to_collect =  if_else(total > 75, ceiling(((average_fish/total)*50)), 
+                                   ceiling(((average_fish/total)*(.7*total)))))
+
+#Check totals for each program to see how they fall out in terms of effort for collecting
+north_program_effort <- north_collections %>%
+  group_by(Monitoring.Group) %>%
+  summarise(total_fish_for_otoliths = sum(num_to_collect))
+
+program_effort = rbind(south_program_effort, north_program_effort)
+
+###Bind the collection numbers and make a table
+collections <- rbind(north_collections, south_collections) 
+collections_final <- collections %>%
+  select(Common.Name, Monitoring.Group, num_to_collect) %>%
+  pivot_wider(names_from = Monitoring.Group, values_from = num_to_collect, values_fill = 0) %>%
+  rowwise(Common.Name) %>%
+  mutate(Total = sum(c_across(BML:SIO)))
+```
+
+
+
+
+
+
+```{r collections, echo = FALSE, warning = FALSE, message = FALSE}
+kableExtra::kbl(collections_final,
+  booktabs = TRUE,
+  caption = "Suggested otolith collections for 2022 CCFRP by species and CCFRP partner",
+  row.names = F) %>%
+  kableExtra::kable_styling(latex_options = "striped")
+```
+
+
+```{r partnernumbers, echo = FALSE, warning = FALSE, message = FALSE}
+kableExtra::kbl(program_effort,
+  booktabs = TRUE,
+  caption = "Number of structures to collect by partner for 2022 CCFRP",
+  row.names = F
+) 
+```
+
+\FloatBarrier
+
+\clearpage
+\newpage
+
+```{r specieslong, echo = FALSE, warning = FALSE, message = FALSE}
+kableExtra::kbl(fish_numbers,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Longer table with raw data",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```

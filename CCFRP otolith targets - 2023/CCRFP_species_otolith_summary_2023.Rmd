@@ -1,0 +1,889 @@
+---
+title: "2023 Proposed CCFRP Otolith Collections and 2022 Retained Fish Length Comparisons"
+author: "Melissa H. Monk and Ellie Brauer"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+    pdf_document:
+    keep_tex: true
+    keep_md: true
+toc: false
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{pdflscape}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+  - \usepackage{placeins}
+always_allow_html: true
+---
+
+
+```{r load-packages, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(devtools)
+library(dplyr)
+library(ggplot2)
+library(ggridges)
+library(stringr)
+library(tidyr)
+library(unikn)
+library(viridis)
+library(kableExtra)
+library(knitr)
+library(xtable)
+```
+
+
+```{r setup, echo = FALSE, include = FALSE, warning = FALSE, message = FALSE, cache = TRUE}
+knitr::opts_chunk$set(echo = FALSE)
+
+
+#-------------------------------------------------------------------------------
+# Read in data and basic cleanup
+#load("CCFRP_cleanedup.RData")
+#setwd("C:/GitHub/CCFRP")
+# Read in data and basic cleanup
+# Eventually open these directly in access, but it's not behaving
+# Extract excel files from the Access database
+# read in trip data
+trips <- read.csv("1-Trip Information.csv")
+# read in drift data
+drifts_all <-read.csv("3-Drift Information.csv")
+# read in catch data
+catches <- read.csv("4-Caught Fishes.csv")
+#Species lookup
+Species <- read.csv("Fish Species.csv")
+Species <- Species %>%
+  select(Species.Code, Common.Name, Rockfish)
+
+#Read in management groups
+Areas <- read.csv("Monitoring Areas.csv")
+
+# columns have spaces - remove all spaces here
+trips <- trips %>% rename_all(make.names)
+catches <- catches %>% rename_all(make.names)
+drifts_all <- drifts_all %>% rename_all(make.names)
+
+#Add species common names
+catches <- left_join(catches, Species, by = 'Species.Code') %>%
+  filter(Rockfish == TRUE)
+
+# select final columns from trip table
+trips <- trips %>%
+  dplyr::select(Trip.ID, Month, Day, Year.Automatic, Vessel) %>%
+  rename(YEAR = Year.Automatic)
+# join drifts and trip info
+drifts_all <- left_join(drifts_all, trips)
+
+# Pull only relevent column names from the drifts
+drifts <- drifts_all %>%
+  dplyr::select(
+    Drift.ID, Trip.ID, ID.Cell.per.Trip, Grid.Cell.ID,
+    Site..MPA..REF., Drift.Time..hrs., Total...Anglers.Fishing,
+    Start.Depth..ft., End.Depth..ft., Excluded.Drift.Comment,
+    ST_LatDD, ST_LonDD, Month, Day, YEAR, Vessel
+  ) %>%
+  rename(SITE = Site..MPA..REF.) %>%
+  filter(!is.na(Drift.Time..hrs.))
+
+# Need to change 7's to july and 8's to august
+drifts$Month[drifts$Month == 7] <- "July"
+drifts$Month[drifts$Month == 8] <- "August"
+
+# Collapse catches to drift level
+#Target_catches <- subset(catches, Species.Code == ccfrp.species.code)
+Drift_catches <- catches %>%
+  group_by(Common.Name, Drift.ID) %>%
+  tally()
+#colnames(Target_catches)[2] <- "Target"
+
+# join drifts and catch info and make NA 0 where target species not observed
+dat <- left_join(Drift_catches, drifts)
+dat <- dat %>%
+  mutate(Area.code = substring(Drift.ID, 1, 2)) %>%
+  mutate(Effort = Total...Anglers.Fishing * Drift.Time..hrs.) %>%
+  mutate(CPUE = n / Effort)
+
+dat <- left_join(dat, Areas)
+
+# List of AREAs to drop
+# TD, Trinidad - no mpa
+# FN, farallons, samples only 2 years
+# PC - error?
+dat <- dat %>%
+  filter(!(Area.code %in% c("FN", "PC", "BM", "LB", "TD"))) %>%
+  droplevels
+
+# Fish time filter
+# Give drifts within a cell on the same day a drift number
+# See how many drifts and total fished time
+Num_drifts_fished <- dat %>%
+  select(YEAR, Drift.ID, ID.Cell.per.Trip, Drift.Time..hrs.) %>%
+  unique() %>%
+  group_by(YEAR, ID.Cell.per.Trip) %>%
+  summarise(
+    num.drifts = n(),
+    tot_time = sum(Drift.Time..hrs.)
+  )
+# cells fished at least 15 minutes
+Drift_time_keep <- Num_drifts_fished %>% filter(tot_time >= .25)
+
+# Remove cells fished less tan a total of 15 minutes on a day
+dat <- dat %>%
+  filter(
+    ID.Cell.per.Trip %in% Drift_time_keep$ID.Cell.per.Trip,
+    `Drift.Time..hrs.` > 0.03333333
+  )
+
+#-------------------------------------------------------------------------------
+
+# Figure out how many of each species we can collect during the 2023 season
+
+#Subset to just Reference areas since we can't take otoliths from MPAs
+#and only look at 2019-2022
+dat2 <- dat %>%
+  filter(SITE == 'REF',
+         YEAR %in% c(2019, 2021, 2022))  
+
+#Get the total angler hours by monitoring area
+effort_by_program <- dat2 %>%
+  ungroup() %>%
+  select(Drift.ID, YEAR, Effort, Total...Anglers.Fishing, Monitoring.Group, Name) %>%
+  unique() 
+
+total_effort <- effort_by_program %>%
+  select(Monitoring.Group, YEAR, Effort) %>%
+  group_by(Monitoring.Group, YEAR) %>%
+  summarise(tot_effort = sum(Effort)) %>%
+  pivot_wider(names_from = Monitoring.Group, values_from = tot_effort)
+```
+
+# Determining 2023 Otolith Collections
+## Methods
+The following use data from 2019, 2021 and 2022 from the reference areas. Drifts that did not see any of the target species were also excluded. The following MPA locations were also excluded: Farallons, Point Conception, Laguna Beach, Trinidad and "BM". 
+
+Species with fewer than 4 individuals seen across the three years were excluded. Yelloweye rockfish and the olive or yellowtail rockfish category were also removed.
+
+Ratios of a species within by CCFRP institution were taken and scaled to either a collection total for each region of 50 samples (otoliths) or 70% of the total. 
+
+
+\newpage
+
+```{r anghrs, echo = FALSE, warning = FALSE, message = FALSE}
+#Look at the effort by year among the programs
+  knitr::kable(booktabs = T,
+    caption = "Total angler hours by institution summed across 2019, 2021, 2022.",
+  effort_by_program %>%
+  select(Monitoring.Group, YEAR, Effort) %>%
+  group_by(Monitoring.Group, YEAR) %>%
+  summarise(Total_AnglerHours = round(sum(Effort),0)) %>%
+  pivot_wider(names_from = Monitoring.Group, values_from = Total_AnglerHours)
+  ) %>%
+    kable_styling(latex_options = "striped")
+
+```
+
+
+```{r effort2022, echo = FALSE, warning = FALSE, message = FALSE}
+
+  knitr::kable(booktabs = T,
+    caption = "Total effort in 2022",
+    effort_by_program %>%
+      filter(YEAR == 2022) %>%
+      group_by(Monitoring.Group) %>%
+      summarise(Total_AnglerHours = round(sum(Effort), 0)) %>%
+      mutate(Percent_Effort = scales::percent(Total_AnglerHours / sum(Total_AnglerHours), accuracy = 1)) %>%
+      data.frame
+  ) %>%
+    kable_styling(latex_options = "striped")
+
+```
+
+```{r effort2019, echo = FALSE, warning = FALSE, message = FALSE}
+  knitr::kable(booktabs = T,
+    caption = "Total effort in 2019",
+    effort_by_program %>%
+      filter(YEAR == 2019) %>%
+      group_by(Monitoring.Group) %>%
+      summarise(Total_AnglerHours = round(sum(Effort),0)) %>%
+      mutate(Percent_Effort = scales::percent(Total_AnglerHours / sum(Total_AnglerHours), accuracy = 1)) %>% data.frame
+  )
+```
+
+
+
+
+```{r echo = FALSE, include = FALSE, warning = FALSE, message = FALSE}
+## Get it down to the species there would be enough or or we're interested in
+total.fish <- dat2 %>%
+  group_by(Common.Name) %>%
+  summarise(total = sum(n)) #%>%
+ # filter(total > )
+
+
+dat2 <- dat2 %>%
+  filter(Common.Name %in% total.fish$Common.Name) %>%
+  filter(!(Common.Name %in% c("Yelloweye Rockfish",
+                              "Olive or Yellowtail Rockfish"))) 
+  
+
+fish_numbers <- dat2 %>%
+  group_by(Common.Name, Monitoring.Group, YEAR, Region) %>%
+  summarise(total_fish = sum(n),
+            avg_annual_cpue = mean(CPUE))# %>%
+  # group_by(Common.Name, CA_area) %>%
+  # summarise(avg_fish = mean(total_fish),
+  #           avg_cpue = mean(avg_annual_cpue)) %>%
+  # mutate(avg_fish = round(avg_fish,0))
+  # 
+
+####SOUTH
+# Get the average number of fish by program per year
+south0 <- fish_numbers %>%
+  filter(Region == "South") %>%
+  group_by(Common.Name, Monitoring.Group) %>%
+  summarise(average_fish = mean(total_fish)) %>%
+  filter(average_fish > 4)
+
+#Get the percent of the fish collected by each program and multiply by 50 - goal or less
+#number of otoliths per species
+south_collections <- south0 %>%
+  group_by(Common.Name) %>%
+  summarise(total = sum(average_fish))
+south_collections <- left_join(south_collections, south0) %>%
+  mutate(num_to_collect =  if_else(total > 75, ceiling(((average_fish/total)*50)), 
+                                    ceiling(((average_fish/total)*(.7*total))))) #%>%
+
+
+#Check totals for each program to see how they fall out in terms of effort for collecting
+south_program_effort <- south_collections %>%
+  group_by(Monitoring.Group) %>%
+  summarise(total_fish_for_otoliths = sum(num_to_collect))
+
+
+#####NORTH
+# Get the average number of fish collected over the last three years by program
+north0 <- fish_numbers %>%
+  filter(Region %in% c("Central", "North")) %>%
+  group_by(Common.Name, Monitoring.Group) %>%
+  summarise(average_fish = mean(total_fish)) %>%
+  filter(average_fish > 4)
+
+
+#Get the percent of the fish collected by each program and multiply by 60 - goal 
+#number of otoliths per species
+north_collections <- north0 %>%
+  group_by(Common.Name) %>%
+  summarise(total = sum(average_fish))
+north_collections <- left_join(north_collections, north0) %>%
+  mutate(num_to_collect =  if_else(total > 75, ceiling(((average_fish/total)*50)), 
+                                   ceiling(((average_fish/total)*(.7*total)))))
+
+#Check totals for each program to see how they fall out in terms of effort for collecting
+north_program_effort <- north_collections %>%
+  group_by(Monitoring.Group) %>%
+  summarise(total_fish_for_otoliths = sum(num_to_collect))
+
+program_effort = rbind(south_program_effort, north_program_effort)
+
+###Bind the collection numbers and make a table
+collections <- rbind(north_collections, south_collections) 
+collections_final <- collections %>%
+  select(Common.Name, Monitoring.Group, num_to_collect) %>%
+  pivot_wider(names_from = Monitoring.Group, values_from = num_to_collect, values_fill = 0) %>%
+  rowwise(Common.Name) %>%
+  mutate(Total = sum(c_across(BML:SIO)))
+```
+
+
+
+```{r collections, echo = FALSE, warning = FALSE, message = FALSE}
+kableExtra::kbl(collections_final,
+  booktabs = TRUE,
+  caption = "Suggested otolith collections for 2023 CCFRP by species and CCFRP partner",
+  row.names = F) %>%
+  kableExtra::kable_styling(latex_options = "striped")
+```
+
+
+```{r partnernumbers, echo = FALSE, warning = FALSE, message = FALSE}
+kableExtra::kbl(program_effort,
+  booktabs = TRUE,
+  caption = "Number of structures to collect by partner for 2023 CCFRP",
+  row.names = F
+) 
+```
+
+\FloatBarrier
+
+\clearpage
+\newpage
+
+```{r specieslong, echo = FALSE, warning = FALSE, message = FALSE}
+kableExtra::kbl(fish_numbers,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Longer table with raw data",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+
+\newpage
+
+# 2022 fish length comparisons
+## Methods
+The completed CCFRP database was queried for area, month, day, year, trip, cell, site (from the drift table not the trip table), species, length, tag, and retained. Desired areas (and species optional) were selected based on institution of interest. Data was then transfered to an excel spreadsheet and a length column in mm units was created by multiplying the cm length column by 10. R friendly column names (area, month, day,	year, vessel, trip, cell, site, species, length_mm, length_cm, tag, retained) were created.
+
+In R, species with large sample sizes and species of interest were identified. An institution and species specific dataframe was created by filtering for REF site and species. Year and retained variables were changed to characters. Density plots with mean lines for each species and year that displays the distribution of lengths of retained fish and non-retained fish were created. A summary table of retained and non-retained fish for each year was produced and diplayed below the corresponding graph. 
+
+Length measurement techniques: Cal Poly Humboldt: "Pinch" tail for Canary, Blue, Deacon RF., measure natural splay for other species. Cal Poly Slo, Fork Length. BML, Fork Length. MLML, Natural Splay Total Length. SIO, Natural Splay Total Length. UCSB, Natural Splay Total Length.
+
+\newpage
+## Cal Poly Blue Rockfish
+```{r echo = FALSE, include = FALSE, warning = FALSE, message = FALSE}
+poly = read.csv("poly_ref.csv")
+polyblue = filter(poly, species == "BLU")
+polyblue$year = as.character(polyblue$year)
+polyblue$retained = as.character(polyblue$retained)
+meangroup = polyblue %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+```
+
+```{r, echo= FALSE, message=FALSE, warning=FALSE}
+ggplot(polyblue, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = polyblue %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Slo Blue RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## Cal Poly Slo Gopher Rockfish
+```{r, echo= FALSE, message=FALSE}
+polygoph = filter(poly, species == "GPR")
+polygoph$year = as.character(polygoph$year)
+polygoph$retained = as.character(polygoph$retained)
+meangroup = polygoph %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(polygoph, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = polygoph %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Slo Gopher RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## Cal Poly Slo Copper Rockfish
+```{r, echo= FALSE, message=FALSE}
+polycop = filter(poly, species == "CPR")
+polycop$year = as.character(polycop$year)
+polycop$retained = as.character(polycop$retained)
+meangroup = polycop %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(polycop, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = polycop %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Slo Copper RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## Cal Poly Slo Vermilion Rockfish
+```{r, echo= FALSE, message=FALSE, warning=FALSE}
+polyverm = filter(poly, species == "VER")
+polyverm$year = as.character(polyverm$year)
+polyverm$retained = as.character(polyverm$retained)
+meangroup = polyverm %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(polyverm, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = polyverm %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Slo Vermilion RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## Cal Poly Slo Olive Rockfish
+```{r, echo= FALSE, message=FALSE}
+polyolive = filter(poly, species == "OLV")
+polyolive$year = as.character(polyolive$year)
+polyolive$retained = as.character(polyolive$retained)
+meangroup = polyolive %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(polyolive, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = polyolive %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Slo Olive Rockfish",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## BML Black Rockfish
+```{r, echo= FALSE, message=FALSE}
+bod = read.csv("bod.csv")
+bod = filter(bod, (site) == "REF")
+bodblack = filter(bod, species == "BLA")
+bodblack$year = as.character(bodblack$year)
+bodblack$retained = as.character(bodblack$retained)
+meangroup = bodblack %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(bodblack, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = bodblack %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "BML Black RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## BML Deacon Rockfish
+```{r, echo= FALSE, message=FALSE}
+bod = read.csv("bod.csv")
+bod = filter(bod, (site) == "REF")
+boddeac = filter(bod, species == "DEA")
+boddeac$year = as.character(boddeac$year)
+boddeac$retained = as.character(boddeac$retained)
+meangroup = boddeac %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(boddeac, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = boddeac %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "BML Deacon RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## BML Blue Rockfish
+```{r, echo= FALSE, message=FALSE}
+bod = read.csv("bod.csv")
+bod = filter(bod, (site) == "REF")
+bodblue = filter(bod, species == "BLU")
+bodblue$year = as.character(bodblue$year)
+bodblue$retained = as.character(bodblue$retained)
+meangroup = bodblue %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(bodblue, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = bodblue %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "BML Blue RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## BML Gopher Rockfish
+```{r, echo= FALSE, message=FALSE}
+bod = read.csv("bod.csv")
+bod = filter(bod, (site) == "REF")
+bodgoph = filter(bod, species == "GPR")
+bodgoph$year = as.character(bodgoph$year)
+bodgoph$retained = as.character(bodgoph$retained)
+meangroup = bodgoph %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(bodgoph, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = bodgoph %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "BML Gopher RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## BML Yellowtail Rockfish
+```{r, echo= FALSE, message=FALSE}
+bod = read.csv("bod.csv")
+bod = filter(bod, (site) == "REF")
+bodyel = filter(bod, species == "YTL")
+bodyel$year = as.character(bodyel$year)
+bodyel$retained = as.character(bodyel$retained)
+meangroup = bodyel %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(bodyel, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = bodyel %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "BML Yellowtail RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## BML Copper Rockfish
+```{r, echo= FALSE, message=FALSE}
+bod = read.csv("bod.csv")
+bod = filter(bod, (site) == "REF")
+bodcop = filter(bod, species == "CPR")
+bodcop$year = as.character(bodcop$year)
+bodcop$retained = as.character(bodcop$retained)
+meangroup = bodcop %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(bodcop, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = bodcop %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "BML Copper RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## BML Canary Rockfish
+```{r, echo= FALSE, message=FALSE}
+bod = read.csv("bod.csv")
+bod = filter(bod, (site) == "REF")
+bodcan = filter(bod, species == "CNY")
+bodcan$year = as.character(bodcan$year)
+bodcan$retained = as.character(bodcan$retained)
+meangroup = bodcan %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(bodcan, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = bodcan %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "BML Cannary RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## UCSB Blue Rockfish
+```{r, echo= FALSE, message=FALSE}
+ucsb = read.csv("UCSB.csv")
+ucsb = filter(ucsb, (site) == "REF")
+ucsbblue = filter(ucsb, species == "BLU", year == "2022")
+ucsbblue$year = as.character(ucsbblue$year)
+ucsbblue$retained = as.character(ucsbblue$retained)
+meangroup = ucsbblue %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(ucsbblue, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = ucsbblue %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "UCSB Blue RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## UCSB Copper Rockfish
+```{r, echo= FALSE, message=FALSE}
+ucsb = read.csv("UCSB.csv")
+ucsb = filter(ucsb, (site) == "REF")
+ucsbcop = filter(ucsb, species == "BLU", year == "2022")
+ucsbcop$year = as.character(ucsbcop$year)
+ucsbcop$retained = as.character(ucsbcop$retained)
+meangroup = ucsbcop %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(ucsbcop, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = ucsbcop %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "UCSB Copper RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## UCSB Gopher Rockfish
+```{r, echo= FALSE, message=FALSE}
+ucsb = read.csv("UCSB.csv")
+ucsb = filter(ucsb, (site) == "REF")
+ucsbgoph = filter(ucsb, species == "GPR", year == "2022")
+ucsbgoph$year = as.character(ucsbgoph$year)
+ucsbgoph$retained = as.character(ucsbgoph$retained)
+meangroup = ucsbgoph %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(ucsbgoph, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = ucsbcop %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "UCSB Gopher RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## Cal Poly Humboldt Black Rockfish
+```{r, echo= FALSE, message=FALSE}
+hsu = read.csv("HSU.csv")
+hsu = filter(hsu, (site) == "REF")
+hsublack = filter(hsu, species == "BLA")
+hsublack$year = as.character(hsublack$year)
+hsublack$retained = as.character(hsublack$retained)
+meangroup = hsublack %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(hsublack, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = hsublack %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Humboldt Black RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## Cal Poly Humboldt Deacon Rockfish
+```{r, echo= FALSE, message=FALSE, warning=FALSE}
+hsu = read.csv("HSU.csv")
+hsu = filter(hsu, (site) == "REF")
+hsudea = filter(hsu, species == "DEA")
+hsudea$year = as.character(hsudea$year)
+hsudea$retained = as.character(hsudea$retained)
+meangroup = hsudea %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(hsudea, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = hsudea %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Humboldt Deacon RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## Cal Poly Humboldt Yellowtail Rockfish
+```{r, echo= FALSE, message=FALSE}
+hsu = read.csv("HSU.csv")
+hsu = filter(hsu, (site) == "REF")
+hsuytl = filter(hsu, species == "YTL")
+hsuytl$year = as.character(hsuytl$year)
+hsuytl$retained = as.character(hsuytl$retained)
+meangroup = hsuytl %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(hsuytl, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = hsuytl %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "Cal Poly Humboldt Yellowtail RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## MLML Black Rockfish
+```{r, echo= FALSE, message=FALSE}
+moss = read.csv("MLML.csv")
+moss = filter(moss, (site) == "REF")
+mossblack = filter(moss, species == "BLA")
+mossblack$year = as.character(mossblack$year)
+mossblack$retained = as.character(mossblack$retained)
+meangroup = mossblack %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(mossblack, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = mossblack %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "MLML Black RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## MLML Copper Rockfish
+```{r, echo= FALSE, message=FALSE, warning=FALSE}
+moss = read.csv("MLML.csv")
+moss = filter(moss, (site) == "REF")
+mosscop = filter(moss, species == "CPR")
+mosscop$year = as.character(mosscop$year)
+mosscop$retained = as.character(mosscop$retained)
+meangroup = mosscop %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(mosscop, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = mosscop %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "MLML Copper RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
+\newpage
+## MLML Blue Rockfish
+```{r, echo= FALSE, message=FALSE, warning=FALSE}
+moss = read.csv("MLML.csv")
+moss = filter(moss, (site) == "REF")
+mossblu = filter(moss, species == "CPR")
+mossblu$year = as.character(mossblu$year)
+mossblu$retained = as.character(mossblu$retained)
+meangroup = mossblu %>% group_by(year, retained) %>% 
+  summarise(avg = mean(length_mm))
+ggplot(mossblu, aes(x=length_mm, fill=retained)) + geom_density(alpha=.2)+ 
+  facet_grid(year ~ .) + 
+  geom_vline(data=meangroup, aes(xintercept=avg, colour=retained), linetype="dashed", size=.3) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+```{r, results = "asis", echo= FALSE, message=FALSE}
+tab = mosscop %>% group_by(year, retained) %>% 
+  summarise(n = n()) %>% pivot_wider(names_from = retained, values_from = n)
+kableExtra::kbl(tab,
+                longtable = TRUE,
+  booktabs = TRUE,
+  caption = "MLML Blue RF",
+  row.names = F
+) %>%
+  kable_styling(latex_options=c("repeat_header", "striped", "hold_position"))
+```
